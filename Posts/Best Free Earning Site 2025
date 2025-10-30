@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏃 Best Free Earning Site 2025</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      background: #f9f9f9;
+      box-sizing: border-box;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    ol {
+      margin-left: 1.2em;
+    }
+    .yt-btn {
+      background: #1a73e8 !important;
+      color: #fff !important;
+      text-decoration: none !important;
+      font-weight: bold !important;
+      text-align: center;
+      padding: 12px 18px;
+      border-radius: 6px;
+      flex: 1 1 auto;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .yt-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+      justify-content: center;
+    }
+    .referral-link {
+      display: inline-block;
+      padding: 12px 20px;
+      background: #fff;
+      color: #1a73e8;
+      border: 2px solid #1a73e8;
+      border-radius: 28px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 0.25em;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 1em auto;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🏃 Best Free Earning Site 2025</h1>
+  <p>📅 October 23, 2025</p>
+
+  <p>If you are redirected from sproughtgigs to this page, follow the instructions below carefully:</p>
+  
+  <ol>
+    <li>Watch the video below for instructions to complete the task.</li>
+  </ol>
+
+  <h2>Watch my step-by-step video tutorial:</h2>
+  <div class="yt-video-wrapper" data-video-id="1sBsz9IJw00" data-src="https://raw.githubusercontent.com/gushumani-rgb/my-blog/refs/heads/main/Images/Watch%20%26%20Earn%20Tasks.webp" style="position:relative;width:100%;padding-top:56.25%;background:#eee center/cover no-repeat;cursor:pointer;overflow:hidden;">
+    <span class="visually-hidden">YouTube video tutorial</span>
+  </div>
+
+  <div class="yt-buttons">
+    <a href="https://www.youtube.com/watch?v=1sBsz9IJw00&action_like=1" class="yt-btn" target="_blank">👍 Like</a>
+    <a href="https://www.youtube.com/watch?v=1sBsz9IJw00&lc=0" class="yt-btn" target="_blank">💬 Comment</a>
+    <a href="https://www.youtube.com/channel/UCbFy1z-tui3DFRxxwdyt-_A?sub_confirmation=1" class="yt-btn" target="_blank">🛎 Subscribe</a>
+  </div>
+
+  <ol start="2">
+    <li>Click the link below to sign up: 👇👇
+      <div>
+        <a class="referral-link" href="https://www.jumptask.io/r/zisuzodyjaze" target="_blank" rel="nofollow">Earn 10% bonus on your first task</a>
+      </div>
+    </li>
+    <li>Sign up with your Google, Facebook, or Apple account only.</li>
+    <li>Scroll down and watch 2 videos to earn.</li>
+    <li>Click “Earnings” on the top right and take a screenshot.</li>
+    <li>Submit the screenshot on sproughtgigs as proof.</li>
+  </ol>
+
+  <h2>Screenshot after sign-up:</h2>
+  <div style="text-align:center;overflow:hidden;position:relative;max-width:720px;margin:1em auto;">
+    <div class="lazy-bg" data-src="https://raw.githubusercontent.com/gushumani-rgb/my-blog/refs/heads/main/Images/Watch%20%26%20Earn%20Tasks2.webp" style="width:100%;padding-top:56.25%;background:#eee center/cover no-repeat;filter:blur(10px);opacity:0;transition:filter .5s ease,opacity .5s ease;"></div>
+  </div>
+
+  <p>💡 Optional: Later you can continue completing tasks to earn more. Minimum withdrawal is $0.50. Enjoy!</p>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".visually-hidden").forEach(e => {
+        Object.assign(e.style, {position:"absolute",width:"1px",height:"1px",padding:0,margin:"-1px",overflow:"hidden",clip:"rect(0,0,0,0)",whiteSpace:"nowrap",border:0});
+      });
+
+      // Lazy-load YouTube
+      document.querySelectorAll(".yt-video-wrapper").forEach(wrapper => {
+        const videoId = wrapper.dataset.videoId;
+        const imgSrc = wrapper.dataset.src;
+        if(!videoId) return;
+
+        new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if(!entry.isIntersecting) return;
+            wrapper.style.background=`url('${imgSrc}') center/cover #000`;
+            observer.unobserve(wrapper);
+
+            const playButton = document.createElement("div");
+            Object.assign(playButton.style, {
+              position:"absolute",
+              top:"50%",
+              left:"50%",
+              transform:"translate(-50%,-50%)",
+              width:"60px",
+              height:"60px",
+              backgroundColor:"red",
+              borderRadius:"50%",
+              zIndex:"10",
+              cursor:"pointer",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center"
+            });
+
+            const triangle = document.createElement("div");
+            Object.assign(triangle.style, {
+              width:"0",
+              height:"0",
+              borderLeft:"25px solid #fff",
+              borderTop:"15px solid transparent",
+              borderBottom:"15px solid transparent",
+              marginLeft:"5px"
+            });
+            playButton.appendChild(triangle);
+            wrapper.appendChild(playButton);
+
+            const playVideo = () => {
+              wrapper.innerHTML = "";
+              const iframe = document.createElement("iframe");
+              iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+              iframe.frameBorder = 0;
+              iframe.allow = "accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; autoplay";
+              iframe.allowFullscreen = true;
+              Object.assign(iframe.style, {position:"absolute",top:0,left:0,width:"100%",height:"100%"});
+              wrapper.appendChild(iframe);
+            };
+
+            playButton.addEventListener("click", playVideo);
+            wrapper.addEventListener("touchstart", playVideo);
+          });
+        }, {threshold:.1}).observe(wrapper);
+      });
+
+      // Lazy-load screenshots
+      document.querySelectorAll(".lazy-bg").forEach(bg => {
+        new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if(!entry.isIntersecting) return;
+            const img = new Image();
+            img.src = entry.target.dataset.src;
+            img.onload = () => {
+              entry.target.style.backgroundImage = `url('${entry.target.dataset.src}')`;
+              entry.target.style.opacity = 1;
+              entry.target.style.filter = "blur(0)";
+            };
+            observer.unobserve(entry.target);
+          });
+        }, {threshold:.1}).observe(bg);
+      });
+    });
+  </script>
+
+</body>
+</html>
