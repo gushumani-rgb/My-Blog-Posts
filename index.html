@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work From Anywhere</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.6;
+    background: #f9f9f9;
+    box-sizing: border-box;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  ul.posts-list {
+    list-style: none;
+    padding: 0;
+  }
+  ul.posts-list li {
+    background: #fff;
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  ul.posts-list li:hover {
+    transform: translateY(-2px);
+  }
+  a.post-link {
+    text-decoration: none;
+    color: #1a73e8;
+    font-weight: bold;
+    font-size: 1.2em;
+  }
+  .post-date {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 5px;
+  }
+
+  /* Bottom images section */
+  .images-section {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    justify-items: center;
+  }
+
+  .images-section img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: default;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .images-section img:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+</style>
+</head>
+<body>
+
+<h1>Work From Anywhere</h1>
+
+<ul class="posts-list">
+  <li>
+    <a class="post-link" href="./best-free-earning-site-2025/index.html">🏃 Best Free Earning Site 2025</a>
+    <div class="post-date">📅 October 23, 2025</div>
+  </li>
+  <li>
+    <a class="post-link" href="./boost-online-earnings/index.html">🏃‍♀️ Boost Your Online Earnings: Get +10% Bonus on Your First JumpTask Task</a>
+    <div class="post-date">📅 October 23, 2025</div>
+  </li>
+</ul>
+
+<!-- Bottom images -->
+<div class="images-section" id="images-section"></div>
+
+<script>
+  // Array of image objects
+  const images = [
+    {src: "Images/Watch & Earn Tasks2.webp", alt: "Watch & Earn Tasks2"},
+    {src: "Images/Watch & Earn Tasks.webp", alt: "Watch & Earn Tasks"},
+    {src: "Images/TimeBucks6.webp", alt: "TimeBucks6"},
+    {src: "Images/TimeBucks5.webp", alt: "TimeBucks5"},
+    {src: "Images/TimeBucks4.webp", alt: "TimeBucks4"},
+    {src: "Images/TimeBucks3.webp", alt: "TimeBucks3"},
+    {src: "Images/TimeBucks2.webp", alt: "TimeBucks2"},
+    {src: "Images/TimeBucks1.webp", alt: "TimeBucks1"},
+    {src: "Images/Sproughtgigs4.webp", alt: "Sproughtgigs4"},
+    {src: "Images/Sproughtgigs3.webp", alt: "Sproughtgigs3"},
+    {src: "Images/Sproughtgigs2.webp", alt: "Sproughtgigs2"},
+    {src: "Images/Sproughtgigs1.webp", alt: "Sproughtgigs1"},
+    {src: "Images/Jumptask1.webp", alt: "Jumptask1"},
+    {src: "Images/JumpTask4.webp", alt: "JumpTask4"},
+    {src: "Images/JumpTask3.webp", alt: "JumpTask3"},
+    {src: "Images/JumpTask2.webp", alt: "JumpTask2"},
+    {src: "Images/Honeygain2.webp", alt: "Honeygain2"},
+    {src: "Images/Honeygain1.webp", alt: "Honeygain1"},
+    {src: "Images/Header Banner.webp", alt: "Header Banner", priority: true},
+    {src: "Images/Google Search & Earn1.webp", alt: "Google Search & Earn1"},
+    {src: "Images/Favicon.webp", alt: "Favicon"},
+    {src: "Images/Benable6.webp", alt: "Benable6"},
+    {src: "Images/Benable5.webp", alt: "Benable5"},
+    {src: "Images/Benable4.webp", alt: "Benable4"},
+    {src: "Images/Benable3.webp", alt: "Benable3"},
+    {src: "Images/Benable2.webp", alt: "Benable2"},
+    {src: "Images/Benable1.webp", alt: "Benable1"},
+    {src: "Images/Aviso5.webp", alt: "Aviso5"},
+    {src: "Images/Aviso4.webp", alt: "Aviso4"},
+    {src: "Images/Aviso3.webp", alt: "Aviso3"},
+    {src: "Images/Aviso2.webp", alt: "Aviso2"},
+    {src: "Images/Aviso1.webp", alt: "Aviso1"},
+    {src: "Images/youtube-video-0euCUIUDp0c.jpg", alt: "YouTube Video"},
+    {src: "Images/Profile Pic.webp", alt: "Profile Pic"},
+    {src: "Images/paging_dot.png", alt: "paging_dot"},
+    {src: "Images/Icon18_email.gif", alt: "Icon18_email"}
+  ];
+
+  const container = document.getElementById('images-section');
+
+  images.forEach(imgObj => {
+    const img = document.createElement('img');
+    img.src = imgObj.src;
+    img.alt = imgObj.alt;
+    img.loading = imgObj.priority ? 'eager' : 'lazy'; // priority image loads immediately
+    container.appendChild(img);
+
+    // Prevent click navigation
+    img.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+</script>
+
+</body>
+</html>
