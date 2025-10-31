@@ -1,0 +1,179 @@
+name: Build index.json & images.json
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  POSTS_DIR: Posts
+  IMAGES_DIR: Images
+  INDEX_PATH: index.json
+  IMAGES_JSON_PATH: images.json
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml beautifulsoup4 python-dateutil
+
+      - name: Ensure folders exist
+        run: |
+          mkdir -p ${{ env.POSTS_DIR }}
+          mkdir -p ${{ env.IMAGES_DIR }}
+
+      # -----------------------------
+      # Build index.json
+      # -----------------------------
+      - name: Build index.json
+        run: |
+          python - <<'PY'
+import os, json, re
+from pathlib import Path
+from bs4 import BeautifulSoup
+import yaml
+from dateutil import parser as dateparser
+
+root = Path.cwd()
+posts_root = root / os.environ.get("POSTS_DIR", "Posts")
+index_path = root / os.environ.get("INDEX_PATH", "index.json")
+
+def read_file(p):
+    try:
+        return p.read_text(encoding='utf-8', errors='ignore')
+    except:
+        return ""
+
+def parse_front_matter(text):
+    if text.startswith('---'):
+        parts = text.split('---', 2)
+        if len(parts) >= 3:
+            try:
+                fm = yaml.safe_load(parts[1]) or {}
+                body = parts[2]
+                return fm, body
+            except:
+                return {}, text
+    return {}, text
+
+posts = []
+
+if posts_root.exists():
+    for p in sorted(posts_root.rglob('*')):
+        if p.is_file() and p.suffix.lower() in ('.md','.markdown','.html','.htm'):
+            text = read_file(p)
+            meta = {}
+            body = text
+
+            if p.suffix.lower() in ('.md','.markdown'):
+                fm, body = parse_front_matter(text)
+                meta.update(fm or {})
+            else:
+                soup = BeautifulSoup(text, 'html.parser')
+                meta['title'] = soup.title.string.strip() if soup.title and soup.title.string else meta.get('title')
+                desc = soup.find('meta', attrs={'name':'description'}) or soup.find('meta', attrs={'property':'og:description'})
+                if desc and desc.get('content'):
+                    meta['excerpt'] = desc['content'].strip()
+                img = soup.find('meta', attrs={'name':'image'}) or soup.find('meta', attrs={'property':'og:image'})
+                if img and img.get('content'):
+                    meta['image'] = img['content'].strip()
+                date_tag = soup.find('meta', attrs={'name':'date'}) or soup.find('meta', attrs={'property':'article:published_time'})
+                if date_tag and date_tag.get('content'):
+                    meta['date'] = date_tag['content'].strip()
+
+            if not meta.get('title'):
+                m = re.search(r'^\s*#\s+(.+)$', body, re.MULTILINE)
+                meta['title'] = m.group(1).strip() if m else p.stem
+
+            if not meta.get('excerpt'):
+                soup2 = BeautifulSoup(body, 'html.parser')
+                ptag = soup2.find('p')
+                meta['excerpt'] = ptag.get_text(strip=True)[:300] if ptag else ''
+
+            if not meta.get('image'):
+                soup3 = BeautifulSoup(body, 'html.parser')
+                img_tag = soup3.find('img')
+                meta['image'] = img_tag.get('src').strip() if img_tag and img_tag.get('src') else None
+
+            rel = p.relative_to(root).as_posix()
+            slug = '/' + p.parent.relative_to(root).as_posix().rstrip('/') + '/' if p.name.lower() in ('index.html','index.htm') else '/' + rel
+
+            dt = None
+            if 'date' in meta and meta['date']:
+                try:
+                    dt = dateparser.parse(meta['date']).isoformat()
+                except:
+                    dt = None
+
+            posts.append({
+                'title': meta.get('title'),
+                'date': dt,
+                'excerpt': meta.get('excerpt',''),
+                'image': meta.get('image'),
+                'path': slug,
+                'source': rel
+            })
+
+if not posts:
+    posts = [{"title":"No posts yet","excerpt":"","path":"/","source":""}]
+
+posts_sorted = sorted(posts, key=lambda x: -dateparser.parse(x['date']).timestamp() if x.get('date') else float('inf'))
+index_path.write_text(json.dumps(posts_sorted, indent=2, ensure_ascii=False))
+print(f"Written index.json with {len(posts_sorted)} posts.")
+PY
+
+      # -----------------------------
+      # Build images.json
+      # -----------------------------
+      - name: Build images.json
+        run: |
+          python - <<'PY'
+import os, json
+from pathlib import Path
+
+root = Path.cwd()
+images_root = root / os.environ.get("IMAGES_DIR","Images")
+images_json_path = root / os.environ.get("IMAGES_JSON_PATH","images.json")
+
+images = []
+if images_root.exists():
+    for p in sorted(images_root.rglob('*')):
+        if p.is_file() and p.suffix.lower() in ('.jpg','.jpeg','.png','.gif','.webp'):
+            images.append({"src": p.relative_to(root).as_posix()})
+
+if not images:
+    images = [{"src":"Images/example1.jpg"}]
+
+images_json_path.write_text(json.dumps(images, indent=2, ensure_ascii=False))
+print(f"Written images.json with {len(images)} images.")
+PY
+
+      # -----------------------------
+      # Commit & push JSON files reliably
+      # -----------------------------
+      - name: Commit & push JSON files
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: update index.json & images.json"
+          file_pattern: "index.json,images.json"
+          branch: main
+          author_name: "github-actions[bot]"
+          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          commit_empty: false
