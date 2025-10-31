@@ -1,0 +1,167 @@
+name: Build index.json (robust)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  POSTS_DIR: Posts        # Your posts folder
+  INDEX_PATH: index.json
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml beautifulsoup4 python-dateutil
+
+      - name: Build index.json from Posts folder
+        run: |
+          python - <<'PY'
+          import os, json, re
+          from pathlib import Path
+          import sys
+          from bs4 import BeautifulSoup
+          import yaml
+          from dateutil import parser as dateparser
+
+          root = Path.cwd()
+          posts_root = root / os.environ.get("POSTS_DIR", "Posts")
+          index_path = root / os.environ.get("INDEX_PATH", "index.json")
+
+          def read_file(p):
+              try:
+                  return p.read_text(encoding='utf-8', errors='ignore')
+              except Exception:
+                  return ""
+
+          def parse_front_matter(text):
+              if text.startswith('---'):
+                  parts = text.split('---', 2)
+                  if len(parts) >= 3:
+                      try:
+                          fm = yaml.safe_load(parts[1]) or {}
+                          body = parts[2]
+                          return fm, body
+                      except Exception:
+                          return {}, text
+              return {}, text
+
+          posts = []
+
+          if not posts_root.exists():
+              print(f"Posts folder {posts_root} not found. Exiting.")
+          else:
+              for p in sorted(posts_root.rglob('*')):
+                  if p.is_file() and p.suffix.lower() in ('.md','.markdown','.html','.htm'):
+                      text = read_file(p)
+                      meta = {}
+                      body = text
+
+                      # Markdown front-matter
+                      if p.suffix.lower() in ('.md','.markdown'):
+                          fm, body = parse_front_matter(text)
+                          meta.update(fm or {})
+                      else:
+                          # HTML parsing
+                          soup = BeautifulSoup(text, 'html.parser')
+                          meta['title'] = soup.title.string.strip() if soup.title and soup.title.string else meta.get('title')
+                          desc = soup.find('meta', attrs={'name':'description'}) or soup.find('meta', attrs={'property':'og:description'})
+                          if desc and desc.get('content'):
+                              meta['excerpt'] = desc['content'].strip()
+                          img = soup.find('meta', attrs={'name':'image'}) or soup.find('meta', attrs={'property':'og:image'})
+                          if img and img.get('content'):
+                              meta['image'] = img['content'].strip()
+                          date_tag = soup.find('meta', attrs={'name':'date'}) or soup.find('meta', attrs={'property':'article:published_time'})
+                          if date_tag and date_tag.get('content'):
+                              meta['date'] = date_tag['content'].strip()
+
+                      # Fallbacks
+                      if not meta.get('title'):
+                          m = re.search(r'^\s*#\s+(.+)$', body, re.MULTILINE)
+                          if m:
+                              meta['title'] = m.group(1).strip()
+                          else:
+                              meta['title'] = p.stem
+
+                      if not meta.get('excerpt'):
+                          m = re.search(r'\n\n([^\n]{20,300})', body)
+                          if m:
+                              meta['excerpt'] = m.group(1).strip().split('\n')[0]
+                          else:
+                              soup2 = BeautifulSoup(body, 'html.parser')
+                              ptag = soup2.find('p')
+                              if ptag and ptag.get_text(strip=True):
+                                  meta['excerpt'] = ptag.get_text(strip=True)[:300]
+                              else:
+                                  meta['excerpt'] = ''
+
+                      if not meta.get('image'):
+                          m = re.search(r'!\[.*?\]\((.*?)\)', body)
+                          if m:
+                              meta['image'] = m.group(1).strip()
+                          else:
+                              soup3 = BeautifulSoup(body, 'html.parser')
+                              img_tag = soup3.find('img')
+                              if img_tag and img_tag.get('src'):
+                                  meta['image'] = img_tag.get('src').strip()
+                              else:
+                                  meta['image'] = None
+
+                      # Path / slug
+                      rel = p.relative_to(root).as_posix()
+                      if p.name.lower() in ('index.html','index.htm'):
+                          slug = '/' + p.parent.relative_to(root).as_posix().rstrip('/') + '/'
+                      else:
+                          slug = '/' + rel
+
+                      # Validate date
+                      dt = None
+                      if 'date' in meta and meta['date']:
+                          try:
+                              dt = dateparser.parse(meta['date']).isoformat()
+                          except Exception:
+                              dt = None
+
+                      posts.append({
+                          'title': meta.get('title'),
+                          'date': dt,
+                          'excerpt': meta.get('excerpt',''),
+                          'image': meta.get('image'),
+                          'path': slug,
+                          'source': rel
+                      })
+
+          # Sort newest first, missing dates last
+          def sort_key(itm):
+              return -float(dateparser.parse(itm['date']).timestamp()) if itm['date'] else float('inf')
+
+          posts_sorted = sorted(posts, key=sort_key)
+          index_path.write_text(json.dumps(posts_sorted, indent=2, ensure_ascii=False))
+          print(f"Written index.json with {len(posts_sorted)} posts.")
+          PY
+
+      - name: Commit & push index.json if changed
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: update index.json (robust)"
+          file_pattern: index.json
+          branch: main
+          author_name: "github-actions[bot]"
+          author_email: "github-actions[bot]@users.noreply.github.com"
