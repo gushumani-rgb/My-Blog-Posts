@@ -1,0 +1,229 @@
+name: Build index & images JSON
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  POSTS_DIR: Posts
+  IMAGES_DIR: Images
+  INDEX_PATH: index.json
+  IMAGES_JSON_PATH: images.json
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4 pyyaml python-dateutil
+
+      - name: Build index.json and images.json
+        run: |
+          python - <<'PY'
+          import os, json, re
+          from pathlib import Path
+          from bs4 import BeautifulSoup
+          import yaml
+          from dateutil import parser as dateparser
+          from datetime import datetime
+
+          root = Path.cwd()
+          posts_root = root / os.environ.get("POSTS_DIR", "Posts")
+          images_root = root / os.environ.get("IMAGES_DIR", "Images")
+          index_path = root / os.environ.get("INDEX_PATH", "index.json")
+          images_json_path = root / os.environ.get("IMAGES_JSON_PATH", "images.json")
+
+          def read_file(p):
+              try:
+                  return p.read_text(encoding='utf-8', errors='ignore')
+              except Exception:
+                  return ""
+
+          def parse_front_matter(text):
+              if text.startswith('---'):
+                  parts = text.split('---', 2)
+                  if len(parts) >= 3:
+                      try:
+                          fm = yaml.safe_load(parts[1]) or {}
+                          body = parts[2]
+                          return fm, body
+                      except Exception:
+                          return {}, text
+              return {}, text
+
+          posts = []
+          images_seen = {}
+
+          def add_image(src, source_file):
+              if not src:
+                  return
+              src = src.strip()
+              # keep entries simple: relative path if local, otherwise original URL
+              images_seen[src] = images_seen.get(src) or {'src': src, 'source_files': []}
+              if source_file and source_file not in images_seen[src]['source_files']:
+                  images_seen[src]['source_files'].append(source_file)
+
+          if posts_root.exists():
+              for p in sorted(posts_root.rglob('*')):
+                  if p.is_file() and p.suffix.lower() in ('.md', '.markdown', '.html', '.htm'):
+                      text = read_file(p)
+                      meta = {}
+                      body = text
+
+                      if p.suffix.lower() in ('.md', '.markdown'):
+                          fm, body = parse_front_matter(text)
+                          if fm:
+                              # normalize simple fields
+                              meta.update(fm or {})
+                      else:
+                          soup = BeautifulSoup(text, 'html.parser')
+                          if soup.title and soup.title.string:
+                              meta['title'] = soup.title.string.strip()
+                          desc = soup.find('meta', attrs={'name':'description'}) or soup.find('meta', attrs={'property':'og:description'})
+                          if desc and desc.get('content'):
+                              meta['excerpt'] = desc['content'].strip()
+                          img = soup.find('meta', attrs={'name':'image'}) or soup.find('meta', attrs={'property':'og:image'})
+                          if img and img.get('content'):
+                              meta['image'] = img['content'].strip()
+                          date_tag = soup.find('meta', attrs={'name':'date'}) or soup.find('meta', attrs={'property':'article:published_time'})
+                          if date_tag and date_tag.get('content'):
+                              meta['date'] = date_tag['content'].strip()
+                          # meta keywords -> tags (comma separated)
+                          kw = soup.find('meta', attrs={'name':'keywords'})
+                          if kw and kw.get('content'):
+                              meta.setdefault('tags', [t.strip() for t in kw['content'].split(',') if t.strip()])
+
+                      # fallback title from first markdown H1
+                      if not meta.get('title'):
+                          m = re.search(r'^\s*#\s+(.+)$', body, re.MULTILINE)
+                          meta['title'] = m.group(1).strip() if m else p.stem
+
+                      # excerpt fallback
+                      if not meta.get('excerpt'):
+                          soup2 = BeautifulSoup(body, 'html.parser')
+                          ptag = soup2.find('p')
+                          meta['excerpt'] = ptag.get_text(strip=True)[:300] if ptag else ''
+
+                      # image fallback: first img tag in body
+                      if not meta.get('image'):
+                          soup3 = BeautifulSoup(body, 'html.parser')
+                          img_tag = soup3.find('img')
+                          if img_tag and img_tag.get('src'):
+                              meta['image'] = img_tag.get('src').strip()
+                          else:
+                              meta['image'] = None
+
+                      # collect images from body and meta tags
+                      soup_imgs = BeautifulSoup(body, 'html.parser')
+                      for it in soup_imgs.find_all('img'):
+                          src = it.get('src')
+                          if src:
+                              add_image(src, p.relative_to(root).as_posix())
+                      # og:image / meta image
+                      soup_meta = BeautifulSoup(body, 'html.parser')
+                      for meta_img in soup_meta.find_all('meta'):
+                          if meta_img.get('property') in ('og:image',) or meta_img.get('name') in ('image',):
+                              if meta_img.get('content'):
+                                  add_image(meta_img.get('content'), p.relative_to(root).as_posix())
+
+                      # tags / categories normalization from front matter
+                      tags = meta.get('tags') or meta.get('tag') or meta.get('keywords') or []
+                      if isinstance(tags, str):
+                          tags = [t.strip() for t in re.split(r'[,\s]+', tags) if t.strip()]
+                      categories = meta.get('categories') or meta.get('category') or []
+                      if isinstance(categories, str):
+                          categories = [t.strip() for t in re.split(r'[,\s]+', categories) if t.strip()]
+
+                      # reading time estimate (words / 200 wpm)
+                      text_only = re.sub(r'<[^>]+>', '', body)  # remove HTML tags if any
+                      # if markdown, strip markdown-ish syntax crudely
+                      text_only = re.sub(r'[`*_>#~\-]{1,}', ' ', text_only)
+                      words = len(re.findall(r'\w+', text_only))
+                      reading_time = max(1, int(round(words / 200))) if words > 0 else 1
+
+                      rel = p.relative_to(root).as_posix()
+                      try:
+                          parent_rel = p.parent.relative_to(root).as_posix()
+                      except Exception:
+                          parent_rel = ""
+                      if p.name.lower() in ('index.html', 'index.htm'):
+                          slug = '/' + parent_rel.rstrip('/') + '/'
+                          if slug == '//':
+                              slug = '/'
+                      else:
+                          slug = '/' + rel
+
+                      dt_iso = None
+                      if 'date' in meta and meta['date']:
+                          try:
+                              parsed = dateparser.parse(str(meta['date']))
+                              if parsed:
+                                  dt_iso = parsed.replace(microsecond=0).isoformat()
+                          except Exception:
+                              dt_iso = None
+
+                      posts.append({
+                          'title': meta.get('title'),
+                          'date': dt_iso,
+                          'excerpt': meta.get('excerpt',''),
+                          'image': meta.get('image'),
+                          'path': slug,
+                          'source': rel,
+                          'tags': tags,
+                          'categories': categories,
+                          'reading_time': reading_time,
+                          'word_count': words
+                      })
+
+          # If there are images in the Images folder, add them too
+          if images_root.exists():
+              for p in sorted(images_root.rglob('*')):
+                  if p.is_file() and p.suffix.lower() in ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'):
+                      rel = p.relative_to(root).as_posix()
+                      add_image('/' + rel, rel)
+
+          if not posts:
+              posts = [{"title":"No posts yet","excerpt":"","path":"/","source":""}]
+
+          # safe sort: newest first, items without date go to the end
+          def sort_key(item):
+              d = item.get('date')
+              if not d:
+                  return datetime.min
+              try:
+                  return dateparser.parse(d)
+              except Exception:
+                  return datetime.min
+
+          posts_sorted = sorted(posts, key=lambda x: sort_key(x), reverse=True)
+
+          # prepare images list
+          images_list = []
+          for k,v in images_seen.items():
+              images_list.append({
+                  'src': v['src'],
+                  'source_files': v['source_files']
+              })
+
+          index_path.write_text(json.dumps(posts_sorted, indent=2, ensure_ascii=False), encoding='utf-8')
+          images_json_path.write_text(json.dumps(images_list, indent=2, ensure_ascii=False), encoding='utf-8')
+          print(f"Written {index_path} with {len(posts_sorted)} posts.")
+          print(f"Written {images_json_path} with {len(images_list)} images.")
+          PY
