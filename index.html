@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Work From Anywhere</title>
+<style>
+  :root { --max-width: 1000px; --accent: #1a73e8; --muted: #666; --card-bg: #fff; }
+  html,body{height:100%}
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    max-width: var(--max-width);
+    margin: 36px auto;
+    padding: 0 20px 60px;
+    line-height: 1.6;
+    background: #f9f9f9;
+    box-sizing: border-box;
+    color: #222;
+  }
+
+  header{ text-align:center; margin-bottom:28px }
+  h1{ margin:0 0 6px; font-size:1.8rem }
+  p.lead{ margin:0; color:var(--muted) }
+
+  .layout{ display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; }
+  .main{ flex:1 1 640px; min-width:300px; box-sizing:border-box; }
+  .aside{ width:300px; min-width:240px; box-sizing:border-box; }
+
+  /* posts list */
+  ul.posts-list { list-style: none; padding: 0; margin: 0; }
+  ul.posts-list li {
+    background: var(--card-bg);
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transition: transform .14s ease, box-shadow .14s ease;
+  }
+  ul.posts-list li:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+  a.post-link {
+    text-decoration: none;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: inline-block;
+  }
+  .meta { font-size: .9rem; color: var(--muted); margin-top: 6px; }
+
+  /* images section */
+  h2.section-title{ margin: 30px 0 12px; text-align:center; }
+  .images-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    justify-items: center;
+  }
+  .images-section a { width:100%; display:block; }
+  .images-section img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .images-section img:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+
+  .loading { text-align:center; color:var(--muted); padding: 20px 0; }
+
+  /* Lightbox */
+  .lightbox-overlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.9);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+  }
+  .lightbox-overlay.active { display:flex; }
+  .lightbox-inner { max-width: 95%; max-height: 95%; position:relative; }
+  .lightbox-inner img { max-width: 100%; max-height: 80vh; border-radius: 8px; display:block; margin:0 auto; }
+  .lb-btn {
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    font-size: 2.6rem;
+    color:#fff;
+    background:transparent;
+    border:0;
+    cursor:pointer;
+    padding:8px 12px;
+    user-select:none;
+    opacity:0.95;
+  }
+  .lb-prev { left: 6px; }
+  .lb-next { right: 6px; }
+  .lb-close {
+    position:absolute;
+    top:8px;
+    right:8px;
+    font-size:2rem;
+    color:#fff;
+    background:transparent;
+    border:0;
+    cursor:pointer;
+    opacity:0.95;
+  }
+
+  /* small screens */
+  @media (max-width:880px){
+    .aside{ order:2; width:100% }
+    .main{ order:1; width:100% }
+    .images-section img{ height:120px }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Work From Anywhere</h1>
+  <p class="lead">Auto-generated index from your post folders and Images/ — updates when you push.</p>
+</header>
+
+<div class="layout">
+  <main class="main" id="main-area">
+    <section id="posts-wrapper">
+      <div class="loading" id="posts-loading">Loading posts…</div>
+      <!-- posts list injected here -->
+    </section>
+
+    <h2 class="section-title">Image Gallery</h2>
+    <section id="images-wrapper">
+      <div class="loading" id="images-loading">Loading images…</div>
+      <div id="images-container" class="images-section" aria-live="polite" aria-label="Image gallery"></div>
+    </section>
+  </main>
+
+  <aside class="aside" id="aside-area" aria-label="Site info">
+    <div style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+      <strong>How it works</strong>
+      <p style="margin:8px 0 0; color:var(--muted); font-size:.95rem;">
+        A GitHub Action generates <code>index.json</code> on each push. This page reads that file and shows posts & images.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="lightbox-inner" role="document">
+    <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+    <button class="lb-btn lb-prev" id="lb-prev" aria-label="Previous">&#10094;</button>
+    <img id="lb-img" src="" alt="Expanded image">
+    <button class="lb-btn lb-next" id="lb-next" aria-label="Next">&#10095;</button>
+  </div>
+</div>
+
+<script>
+/*
+  index.html client script
+
+  - Expects /index.json to exist and follow the structure produced by the workflow:
+    { posts: [{ title, folder, path, published_date, last_modified }], images: [{ name, path }] }
+  - If index.json is not present (first-run), shows friendly message.
+*/
+
+// Utility: format ISO date to readable local string (no crash if invalid)
+function formatIsoToLocal(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString();
+  } catch (e) {
+    return iso;
+  }
+}
+
+// Render posts
+function renderPosts(posts) {
+  const wrapper = document.getElementById('posts-wrapper');
+  wrapper.innerHTML = ''; // clear loader
+
+  const ul = document.createElement('ul');
+  ul.className = 'posts-list';
+  if (!posts || posts.length === 0) {
+    wrapper.appendChild(Object.assign(document.createElement('div'), { className: 'loading', textContent: 'No posts found.' }));
+    return;
+  }
+
+  // sort: prefer published_date (if ISO-like), else last_modified, else title
+  posts.sort((a,b) => {
+    const aDate = a.last_modified || '';
+    const bDate = b.last_modified || '';
+    if (aDate && bDate) return new Date(bDate) - new Date(aDate);
+    return (a.title || '').localeCompare(b.title || '');
+  });
+
+  posts.forEach(p => {
+    const li = document.createElement('li');
+
+    const a = document.createElement('a');
+    a.className = 'post-link';
+    a.href = p.path || ('/' + (p.folder || ''));
+    a.textContent = (p.title || p.folder || p.path || 'Untitled').replace(/\s+/g,' ').trim();
+
+    li.appendChild(a);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+
+    const metaParts = [];
+    if (p.published_date) metaParts.push(p.published_date);
+    if (p.last_modified) metaParts.push('Last updated: ' + formatIsoToLocal(p.last_modified));
+    if (metaParts.length) meta.textContent = metaParts.join(' • ');
+
+    if (meta.textContent) li.appendChild(meta);
+    ul.appendChild(li);
+  });
+
+  wrapper.appendChild(ul);
+}
+
+// Render images
+function renderImages(images) {
+  const container = document.getElementById('images-container');
+  container.innerHTML = '';
+
+  if (!images || images.length === 0) {
+    container.appendChild(Object.assign(document.createElement('div'), { className: 'loading', textContent: 'No images found.' }));
+    return;
+  }
+
+  images.forEach(img => {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.addEventListener('click', (ev) => { ev.preventDefault(); openLightboxForImage(img.path); });
+
+    const el = document.createElement('img');
+    el.src = img.path;
+    el.alt = img.name || '';
+    // fallback to raw.githubusercontent if pages path 404s (optional - user can remove)
+    el.onerror = function() {
+      // Best-effort fallback: raw.githubusercontent path requires repo info; if you want that fallback, update below.
+      // el.src = `https://raw.githubusercontent.com/OWNER/REPO/main${img.path}`;
+      // We'll leave the fallback commented out to avoid accidental 404 flooding.
+    };
+    a.appendChild(el);
+    container.appendChild(a);
+  });
+}
+
+/* LIGHTBOX */
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+const lbClose = document.getElementById('lb-close');
+const lbNext = document.getElementById('lb-next');
+const lbPrev = document.getElementById('lb-prev');
+
+let galleryNodes = [];
+let currentIndex = 0;
+
+function updateGalleryNodes() {
+  galleryNodes = Array.from(document.querySelectorAll('.images-section img'));
+}
+
+function openLightboxForImage(src) {
+  updateGalleryNodes();
+  currentIndex = galleryNodes.findIndex(img => img.src === new URL(src, location.href).href);
+  if (currentIndex === -1) currentIndex = 0;
+  lbImg.src = galleryNodes[currentIndex]?.src || src;
+  lightbox.classList.add('active');
+  lightbox.setAttribute('aria-hidden', 'false');
+  // focus for keyboard interaction
+  lbClose.focus();
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('active');
+  lightbox.setAttribute('aria-hidden', 'true');
+  lbImg.src = '';
+}
+
+function showNext() {
+  updateGalleryNodes();
+  if (!galleryNodes.length) return;
+  currentIndex = (currentIndex + 1) % galleryNodes.length;
+  lbImg.src = galleryNodes[currentIndex].src;
+}
+
+function showPrev() {
+  updateGalleryNodes();
+  if (!galleryNodes.length) return;
+  currentIndex = (currentIndex - 1 + galleryNodes.length) % galleryNodes.length;
+  lbImg.src = galleryNodes[currentIndex].src;
+}
+
+lbClose.addEventListener('click', closeLightbox);
+lbNext.addEventListener('click', showNext);
+lbPrev.addEventListener('click', showPrev);
+
+// keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (!lightbox.classList.contains('active')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowRight') showNext();
+  if (e.key === 'ArrowLeft') showPrev();
+});
+
+// close clicking outside
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+
+/* Fetch index.json and render */
+async function initFromIndexJson() {
+  const postsLoading = document.getElementById('posts-loading');
+  const imagesLoading = document.getElementById('images-loading');
+
+  try {
+    const res = await fetch('/index.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('index.json not found (HTTP ' + res.status + ')');
+    const data = await res.json();
+
+    // posts
+    postsLoading?.remove();
+    renderPosts(data.posts || []);
+
+    // images
+    imagesLoading?.remove();
+    renderImages(data.images || []);
+  } catch (err) {
+    console.warn('Could not load /index.json:', err);
+    // Friendly fallback UI
+    if (postsLoading) postsLoading.textContent = 'Could not load posts. If you just added the workflow, push any change to trigger the Action — index.json will be created on the next run.';
+    if (imagesLoading) imagesLoading.textContent = 'Could not load images.';
+    // leave page usable: optionally you could still keep static links
+  }
+}
+
+// run on load
+document.addEventListener('DOMContentLoaded', initFromIndexJson);
+</script>
+</body>
+  </html>
