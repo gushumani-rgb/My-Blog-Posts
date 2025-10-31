@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Work From Anywhere</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.6; background: #f9f9f9; color: #222; }
+    h1 { text-align: center; font-size: 2em; margin-bottom: 30px; }
+    .post { background: #fff; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 25px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .post:hover { transform: translateY(-4px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .post img { max-width: 100%; border-radius: 8px; margin-bottom: 15px; }
+    .post h2 { margin: 0 0 10px; font-size: 1.4em; }
+    .post p { margin: 0 0 10px; color: #555; }
+    .date { color: #888; font-size: 0.9em; }
+    .gallery { margin-top: 40px; }
+    .gallery h2 { text-align: center; }
+    .gallery img { width: 100%; max-width: 250px; height: auto; border-radius: 10px; margin: 10px; cursor: pointer; transition: transform 0.2s; }
+    .gallery img:hover { transform: scale(1.05); }
+    .gallery-grid { display: flex; flex-wrap: wrap; justify-content: center; }
+    a.post-link { color: inherit; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>Work From Anywhere</h1>
+
+  <div id="posts">Loading posts...</div>
+
+  <div class="gallery">
+    <h2>Image Gallery</h2>
+    <div id="gallery" class="gallery-grid">Loading images...</div>
+  </div>
+
+  <script>
+    // Prefer post.source when available (points to Posts/.../index.html)
+    // Otherwise normalize post.path and ensure it resolves to index.html
+    function normalizePathToHtml(raw) {
+      if (!raw) return '#';
+      // remove leading ./ and leading slashes
+      raw = raw.replace(/^\.\//, '').replace(/^\/+/, '');
+      // if it's an absolute URL (starts with http or //) just return it
+      if (/^(https?:)?\/\//i.test(raw)) return raw;
+      // If it already looks like index.html, return as-is
+      if (/index\.html?$/i.test(raw)) return raw;
+      // If it ends with slash, append index.html
+      if (raw.endsWith('/')) return raw + 'index.html';
+      // If it looks like a folder (no dot in last segment) append /index.html
+      const lastSegment = raw.split('/').pop();
+      if (!lastSegment.includes('.')) return raw + '/index.html';
+      // otherwise assume it points to a file (leave it)
+      return raw;
+    }
+
+    function buildLink(post) {
+      // Use source first if available (it points directly to index.html)
+      const candidate = post.source && post.source.trim() ? post.source.trim() : (post.path ? post.path.trim() : '');
+      let normalized = normalizePathToHtml(candidate);
+
+      // Prevent accidentally linking to index.json (convert to index.html)
+      normalized = normalized.replace(/index\.json$/i, 'index.html');
+
+      try {
+        // Resolve relative to current location to support project pages
+        const base = new URL(location.href);
+        const url = new URL(normalized, base);
+        // Remove duplicate slashes from pathname (but keep protocol slashes)
+        url.pathname = url.pathname.replace(/\/{2,}/g, '/');
+        return url.href;
+      } catch (e) {
+        // fallback to raw normalized string
+        return normalized;
+      }
+    }
+
+    function encodeImage(url) {
+      try {
+        if (!url) return url;
+        return new URL(url, location.href).href;
+      } catch (e) {
+        return encodeURI(url);
+      }
+    }
+
+    async function fetchIndexJson() {
+      const res = await fetch('index.json', { cache: 'no-cache' });
+      if (!res.ok) throw new Error('index.json not found or returned ' + res.status);
+      return res.json();
+    }
+
+    async function loadPosts() {
+      const postsDiv = document.getElementById('posts');
+      try {
+        const posts = await fetchIndexJson();
+
+        if (!posts || !posts.length) {
+          postsDiv.innerHTML = "<p>No posts found. Push something to Posts/ and wait for GitHub Actions to rebuild.</p>";
+          return;
+        }
+
+        posts.sort((a,b) => {
+          const da = a.date ? new Date(a.date).getTime() : 0;
+          const db = b.date ? new Date(b.date).getTime() : 0;
+          return db - da;
+        });
+
+        postsDiv.innerHTML = posts.map(post => {
+          const link = buildLink(post);
+          // Debug line you can remove later:
+          console.log('post mapping:', { title: post.title, rawPath: post.path, source: post.source, resolved: link });
+
+          const safeTitle = post.title || 'Untitled';
+          const excerpt = post.excerpt || '';
+          const dateHtml = post.date ? `<div class="date">${new Date(post.date).toLocaleDateString()}</div>` : '';
+          const imageHtml = post.image ? `<img src="${encodeImage(post.image)}" alt="${safeTitle}">` : '';
+
+          return `
+            <div class="post">
+              ${imageHtml}
+              <h2><a class="post-link" href="${link}" target="_blank" rel="noopener noreferrer">${safeTitle}</a></h2>
+              <p>${excerpt}</p>
+              ${dateHtml}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        postsDiv.innerHTML = "<p>Could not load posts.</p>";
+        console.error(e);
+      }
+    }
+
+    async function loadImages() {
+      const galleryDiv = document.getElementById('gallery');
+      try {
+        const posts = await fetchIndexJson();
+
+        posts.sort((a,b) => {
+          const da = a.date ? new Date(a.date).getTime() : 0;
+          const db = b.date ? new Date(b.date).getTime() : 0;
+          return db - da;
+        });
+
+        const images = posts.filter(p => p.image).slice(0, 12);
+        if (!images.length) {
+          galleryDiv.innerHTML = "<p>No images found.</p>";
+          return;
+        }
+
+        galleryDiv.innerHTML = images.map(img => {
+          const link = buildLink(img);
+          const imgUrl = encodeImage(img.image);
+          console.log('gallery mapping:', { title: img.title, source: img.source, path: img.path, resolved: link, image: imgUrl });
+          return `<a href="${link}" target="_blank" rel="noopener noreferrer"><img src="${imgUrl}" alt="${img.title || ''}"></a>`;
+        }).join('');
+      } catch (e) {
+        galleryDiv.innerHTML = "<p>Could not load images.</p>";
+        console.error(e);
+      }
+    }
+
+    loadPosts();
+    loadImages();
+  </script>
+</body>
+</html>
