@@ -1,5 +1,35 @@
 [
   {
+    "src": "/Images/Aviso1.webp",
+    "source_files": [
+      "Images/Aviso1.webp"
+    ]
+  },
+  {
+    "src": "/Images/Aviso2.webp",
+    "source_files": [
+      "Images/Aviso2.webp"
+    ]
+  },
+  {
+    "src": "/Images/Aviso3.webp",
+    "source_files": [
+      "Images/Aviso3.webp"
+    ]
+  },
+  {
+    "src": "/Images/Aviso4.webp",
+    "source_files": [
+      "Images/Aviso4.webp"
+    ]
+  },
+  {
+    "src": "/Images/Aviso5.webp",
+    "source_files": [
+      "Images/Aviso5.webp"
+    ]
+  },
+  {
     "src": "/Images/Benable1.webp",
     "source_files": [
       "Images/Benable1.webp"
@@ -177,6 +207,12 @@
     "src": "/Images/paging_dot.png",
     "source_files": [
       "Images/paging_dot.png"
+    ]
+  },
+  {
+    "src": "/Images/sproughtgigs-video.webp",
+    "source_files": [
+      "Images/sproughtgigs-video.webp"
     ]
   },
   {
