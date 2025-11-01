@@ -1,8 +1,14 @@
-/* 
-  Cache everything for 1 year
-  (HTML excluded from immutable so updates still appear)
-*/
-Cache-Control: public, max-age=31536000, immutable
+# Images & fonts — 1 year cache, immutable
+*.{webp,png,jpg,jpeg,gif,svg,woff,woff2,ttf,eot}
+  Cache-Control: public, max-age=31536000, immutable
 
-/*.html
-  Cache-Control: public, max-age=0, must-revalidate
+# HTML pages — always fresh
+*.html
+  Cache-Control: no-cache, must-revalidate
+
+# CSS, JS — 1 year cache, immutable
+*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+*.js
+  Cache-Control: public, max-age=31536000, immutable
