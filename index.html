@@ -58,13 +58,36 @@
   </div>
 
   <script>
+    // ========= Robust site base + path fixer =========
+    // SITE_BASE becomes an absolute URL that preserves repo subpath (e.g. /repo-name/)
+    const SITE_BASE = (() => {
+      const baseElem = document.querySelector('base');
+      if (baseElem && baseElem.href) return baseElem.href.replace(/\/?$/, '/');
+
+      // Keep pathname directory (preserves /repo-name/ for project pages)
+      const p = location.pathname.replace(/\/[^\/]*$/, '/');
+      return location.origin + p;
+    })();
+
     function fixPath(path, type = 'image') {
       if (!path) return '';
       path = path.trim();
-      if (path.startsWith('http') || path.startsWith('/')) return path;
-      return type === 'image' ? 'Images/' + path : 'Posts/' + path;
+      // already absolute?
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      // root-absolute path starting with '/'
+      if (path.startsWith('/')) return location.origin + path;
+      // relative path: ensure proper prefix folder and resolve against SITE_BASE
+      const prefix = (type === 'image') ? 'Images/' : 'Posts/';
+      const rel = path.startsWith('Images/') || path.startsWith('Posts/') ? path : prefix + path;
+      try {
+        return new URL(rel, SITE_BASE).href;
+      } catch (e) {
+        // fallback: concatenate
+        return SITE_BASE.replace(/\/$/, '') + '/' + rel;
+      }
     }
 
+    // ========= Utilities =========
     function timeAgo(dateStr) {
       const date = new Date(dateStr);
       const now = new Date();
@@ -83,11 +106,12 @@
       return `${d} day${d !== 1 ? 's' : ''} ago`;
     }
 
+    // ========= Rendering =========
     function renderPosts(posts) {
       const container = document.getElementById('posts');
-      container.innerHTML = posts.length ? '' : 'No posts yet.';
+      container.innerHTML = posts && posts.length ? '' : 'No posts yet.';
 
-      posts.forEach(post => {
+      (posts || []).forEach(post => {
         if (!post.date) {
           const now = new Date();
           const monthsAgo = Math.floor(Math.random() * 12); // 0–11 months
@@ -149,6 +173,7 @@
         container.appendChild(div);
       });
 
+      // sort by date desc
       Array.from(container.children)
         .sort((a, b) => new Date(b.querySelector('.date').dataset.date) - new Date(a.querySelector('.date').dataset.date))
         .forEach(node => container.appendChild(node));
@@ -165,9 +190,10 @@
 
     function renderGallery(images) {
       const g = document.getElementById('gallery');
-      g.innerHTML = images.length ? '' : 'No images yet.';
-      images.forEach(it => {
-        const src = typeof it === 'string' ? fixPath(it, 'image') : fixPath(it.src, 'image');
+      g.innerHTML = images && images.length ? '' : 'No images yet.';
+      (images || []).forEach(it => {
+        const srcVal = (typeof it === 'string') ? it : (it.src || '');
+        const src = fixPath(srcVal, 'image');
         if (!src) return;
 
         const a = document.createElement('a');
@@ -191,6 +217,7 @@
       });
     }
 
+    // ========= Robust JSON loader =========
     async function loadJSON(paths = []) {
       for (const p of paths) {
         try {
@@ -204,15 +231,25 @@
     }
 
     async function updateContent() {
-      const base = location.pathname.replace(/\/[^\/]*$/, '/');
-      const posts = await loadJSON([base+'index.json','./index.json','index.json']);
-      renderPosts(posts);
+      // Try SITE_BASE absolute first, then a few relative fallbacks
+      const posts = await loadJSON([
+        SITE_BASE + 'index.json',
+        SITE_BASE + 'index.json', // duplicate kept intentionally if you want to modify order
+        './index.json',
+        'index.json'
+      ]);
+      renderPosts(posts || []);
       updateTimeAgoLabels();
 
-      const images = await loadJSON([base+'images.json','./images.json','images.json']);
-      renderGallery(images);
+      const images = await loadJSON([
+        SITE_BASE + 'images.json',
+        './images.json',
+        'images.json'
+      ]);
+      renderGallery(images || []);
     }
 
+    // ========= Filter UI =========
     document.getElementById('jsonFilter').addEventListener('input', (e) => {
       const q = e.target.value.toLowerCase().trim();
       Array.from(document.querySelectorAll('.posts-list .post')).forEach(node => {
@@ -223,9 +260,10 @@
       });
     });
 
+    // ========= Kick off =========
     updateContent();
-    setInterval(updateContent, 30000);
-    setInterval(updateTimeAgoLabels, 60000);
+    setInterval(updateContent, 30000); // refresh content
+    setInterval(updateTimeAgoLabels, 60000); // refresh "time ago" displays
   </script>
 </body>
-  </html>
+</html>
