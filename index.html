@@ -58,15 +58,60 @@
   </div>
 
   <script>
-    // ====== Base path resolver (works on GitHub Pages + custom domain) ======
+    // ==============================
+    // SITE_BASE resolver (user or project site)
+    // ==============================
     const SITE_BASE = (() => {
       const baseElem = document.querySelector('base');
       if (baseElem && baseElem.href) return baseElem.href.replace(/\/?$/, '/');
-      const p = location.pathname.replace(/\/[^\/]*$/, '/');
-      return location.origin + p;
+
+      const pathParts = location.pathname.split('/').filter(Boolean);
+      let basePath = '/';
+      if (pathParts.length > 0 && location.hostname !== 'localhost') {
+        basePath = '/' + pathParts[0] + '/';
+      }
+      return location.origin + basePath;
     })();
 
-    // ====== Utility: Time Ago ======
+    console.log('SITE_BASE =', SITE_BASE);
+
+    // ==============================
+    // fixPath: convert JSON paths to absolute URLs
+    // ==============================
+    function fixPath(path, type = 'image') {
+      if (!path) return '';
+      path = path.trim();
+      if (/^https?:\/\//i.test(path)) return path;
+      if (path.startsWith('/')) return location.origin + path;
+
+      const folderLower = type === 'image' ? 'images/' : 'posts/';
+      const folderCap   = type === 'image' ? 'Images/' : 'Posts/';
+
+      const candidates = [];
+      if (path.startsWith(folderLower) || path.startsWith(folderCap) ||
+          path.toLowerCase().startsWith(folderLower)) {
+        candidates.push(path);
+      } else {
+        candidates.push(folderCap + path);
+        candidates.push(folderLower + path);
+        candidates.push(folderCap + path.toLowerCase());
+        candidates.push(folderLower + path.toLowerCase());
+      }
+      candidates.push(path);
+      candidates.push(path.toLowerCase());
+
+      for (const c of candidates) {
+        try {
+          const url = new URL(c, SITE_BASE).href;
+          return url;
+        } catch { continue; }
+      }
+      return SITE_BASE + (type === 'image' ? 'Images/' : 'Posts/') + path;
+    }
+
+    // ==============================
+    // Time Ago Helper
+    // ==============================
     function timeAgo(dateStr) {
       const date = new Date(dateStr);
       const now = new Date();
@@ -77,31 +122,9 @@
       return `${Math.floor(diff / 86400)} day${diff >= 172800 ? 's' : ''} ago`;
     }
 
-    // ====== Path Fixer (fast, GitHub-safe) ======
-    function fixPath(path, type = 'image') {
-      if (!path) return '';
-      path = path.trim();
-
-      // absolute URL
-      if (/^https?:\/\//i.test(path)) return path;
-
-      // root absolute
-      if (path.startsWith('/')) return location.origin + path;
-
-      // always lowercase folders for GH Pages
-      const prefix = (type === 'image') ? 'images/' : 'posts/';
-      const normalized = path.toLowerCase().startsWith(prefix)
-        ? path
-        : prefix + path;
-
-      try {
-        return new URL(normalized, SITE_BASE).href;
-      } catch {
-        return SITE_BASE.replace(/\/$/, '') + '/' + normalized;
-      }
-    }
-
-    // ====== Load JSON ======
+    // ==============================
+    // Load JSON
+    // ==============================
     async function loadJSON(paths = []) {
       for (const p of paths) {
         try {
@@ -109,12 +132,14 @@
           if (!res.ok) continue;
           const data = await res.json();
           if (Array.isArray(data)) return data;
-        } catch (e) {}
+        } catch (e) { console.warn('Failed to load JSON from', p, e); }
       }
       return [];
     }
 
-    // ====== Render Posts ======
+    // ==============================
+    // Render Posts
+    // ==============================
     function renderPosts(posts) {
       const container = document.getElementById('posts');
       container.innerHTML = posts && posts.length ? '' : 'No posts yet.';
@@ -145,7 +170,10 @@
           img.onerror = function() {
             this.onerror = null;
             this.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-              '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="100%" height="100%" fill="#eceff6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9aa3b2" font-size="14">no image</text></svg>'
+              '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">' +
+              '<rect width="100%" height="100%" fill="#eceff6"/>' +
+              '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9aa3b2" font-size="14">no image</text>' +
+              '</svg>'
             );
           };
           div.insertBefore(img, title.nextSibling);
@@ -166,21 +194,22 @@
         container.appendChild(div);
       });
 
-      // Sort by date (newest first)
       Array.from(container.children)
-        .sort((a, b) => new Date(b.querySelector('.date').dataset.date) - new Date(a.querySelector('.date').dataset.date))
-        .forEach(node => container.appendChild(node));
+        .sort((a,b)=>new Date(b.querySelector('.date').dataset.date)-new Date(a.querySelector('.date').dataset.date))
+        .forEach(node=>container.appendChild(node));
     }
 
-    // ====== Render Gallery ======
+    // ==============================
+    // Render Gallery
+    // ==============================
     function renderGallery(images) {
       const g = document.getElementById('gallery');
       g.innerHTML = images && images.length ? '' : 'No images yet.';
 
       (images || []).forEach(it => {
-        const srcVal = typeof it === 'string' ? it : (it.src || '');
-        const src = fixPath(srcVal, 'image');
-        if (!src) return;
+        const srcVal = typeof it==='string'?it:(it.src||'');
+        const src = fixPath(srcVal,'image');
+        if(!src) return;
 
         const a = document.createElement('a');
         a.href = src;
@@ -188,13 +217,16 @@
         a.rel = 'noopener noreferrer';
 
         const img = document.createElement('img');
-        img.alt = '';
-        img.loading = 'lazy';
+        img.alt='';
+        img.loading='lazy';
         img.src = src;
-        img.onerror = function() {
-          this.onerror = null;
-          this.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="100%" height="100%" fill="#eceff6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9aa3b2" font-size="14">no image</text></svg>'
+        img.onerror=function() {
+          this.onerror=null;
+          this.src='data:image/svg+xml;utf8,'+encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">'+
+            '<rect width="100%" height="100%" fill="#eceff6"/>'+
+            '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9aa3b2" font-size="14">no image</text>'+
+            '</svg>'
           );
         };
 
@@ -203,51 +235,59 @@
       });
     }
 
-    // ====== Update Time Labels ======
+    // ==============================
+    // Update Time Ago labels
+    // ==============================
     function updateTimeAgoLabels() {
-      document.querySelectorAll('.posts-list .post .date').forEach(d => {
-        const dateStr = d.dataset.date;
-        if (!dateStr) return;
+      document.querySelectorAll('.posts-list .post .date').forEach(d=>{
+        const dateStr=d.dataset.date;
+        if(!dateStr) return;
         const newText = timeAgo(dateStr);
-        if (d.textContent !== newText) d.textContent = newText;
+        if(d.textContent!==newText) d.textContent=newText;
       });
     }
 
-    // ====== Fetch and Render ======
+    // ==============================
+    // Fetch and Render
+    // ==============================
     async function updateContent() {
       const posts = await loadJSON([
-        SITE_BASE + 'index.json',
-        SITE_BASE + 'data/index.json',
+        SITE_BASE+'index.json',
+        SITE_BASE+'data/index.json',
         './index.json',
         'index.json'
       ]);
-      renderPosts(posts || []);
+      renderPosts(posts||[]);
       updateTimeAgoLabels();
 
       const images = await loadJSON([
-        SITE_BASE + 'images.json',
-        SITE_BASE + 'data/images.json',
+        SITE_BASE+'images.json',
+        SITE_BASE+'data/images.json',
         './images.json',
         'images.json'
       ]);
-      renderGallery(images || []);
+      renderGallery(images||[]);
     }
 
-    // ====== Filter ======
-    document.getElementById('jsonFilter').addEventListener('input', e => {
-      const q = e.target.value.toLowerCase().trim();
-      document.querySelectorAll('.posts-list .post').forEach(node => {
-        const title = node.querySelector('h3')?.innerText.toLowerCase() || '';
-        const excerpt = node.querySelector('p')?.innerText.toLowerCase() || '';
-        const path = node.querySelector('h3 a')?.href.toLowerCase() || '';
-        node.style.display = (!q || title.includes(q) || excerpt.includes(q) || path.includes(q)) ? '' : 'none';
+    // ==============================
+    // Filter posts
+    // ==============================
+    document.getElementById('jsonFilter').addEventListener('input', e=>{
+      const q=e.target.value.toLowerCase().trim();
+      document.querySelectorAll('.posts-list .post').forEach(node=>{
+        const title=node.querySelector('h3')?.innerText.toLowerCase()||'';
+        const excerpt=node.querySelector('p')?.innerText.toLowerCase()||'';
+        const path=node.querySelector('h3 a')?.href.toLowerCase()||'';
+        node.style.display=(!q||title.includes(q)||excerpt.includes(q)||path.includes(q))?'':'none';
       });
     });
 
-    // ====== Init ======
+    // ==============================
+    // Initialize
+    // ==============================
     updateContent();
-    setInterval(updateContent, 30000);
-    setInterval(updateTimeAgoLabels, 60000);
+    setInterval(updateContent,30000);
+    setInterval(updateTimeAgoLabels,60000);
   </script>
 </body>
 </html>
