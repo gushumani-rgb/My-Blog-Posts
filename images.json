@@ -204,6 +204,18 @@
     ]
   },
   {
+    "src": "/Images/header-mobile.webp",
+    "source_files": [
+      "Images/header-mobile.webp"
+    ]
+  },
+  {
+    "src": "/Images/header-tablet.webp",
+    "source_files": [
+      "Images/header-tablet.webp"
+    ]
+  },
+  {
     "src": "/Images/paging_dot.png",
     "source_files": [
       "Images/paging_dot.png"
