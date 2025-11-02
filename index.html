@@ -7,7 +7,7 @@
   <style>
     :root{
       --bg:#f7f8fb; --card:#fff; --muted:#6b7280; --accent:#0b63b8;
-      --mono: "SFMono-Regular", Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+      --mono:"SFMono-Regular",Menlo,Monaco,"Roboto Mono","Courier New",monospace;
     }
     html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
     .wrap{max-width:1100px;margin:36px auto;padding:20px;}
@@ -19,17 +19,17 @@
     .date{font-size:12px;color:#9aa3b2;margin-top:8px}
     .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
     .gallery img{width:100%;height:100px;object-fit:cover;border-radius:8px;display:block}
-    .gallery a{display:block; cursor:pointer; text-decoration:none;}
+    .gallery a{display:block;cursor:pointer;text-decoration:none;}
     .meta{font-size:12px;color:var(--muted);margin-top:10px}
     .search{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb}
     .section-title{font-size:18px;font-weight:600;margin-bottom:12px;color:var(--accent);}
     @media (max-width:980px){.grid{grid-template-columns:1fr;}}
   </style>
 
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6739613781204214"
-     crossorigin="anonymous"></script>
-  
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6739613781204214"
+    crossorigin="anonymous"></script>
 </head>
+
 <body>
   <div class="wrap">
     <h1 style="text-align:center;margin-bottom:24px;color:var(--accent);">Work From Anywhere</h1>
@@ -58,73 +58,69 @@
   </div>
 
   <script>
-    // ========= Robust site base + path fixer =========
-    // SITE_BASE becomes an absolute URL that preserves repo subpath (e.g. /repo-name/)
+    // ====== Base path resolver (works on GitHub Pages + custom domain) ======
     const SITE_BASE = (() => {
       const baseElem = document.querySelector('base');
       if (baseElem && baseElem.href) return baseElem.href.replace(/\/?$/, '/');
-
-      // Keep pathname directory (preserves /repo-name/ for project pages)
       const p = location.pathname.replace(/\/[^\/]*$/, '/');
       return location.origin + p;
     })();
 
-    function fixPath(path, type = 'image') {
-      if (!path) return '';
-      path = path.trim();
-      // already absolute?
-      if (path.startsWith('http://') || path.startsWith('https://')) return path;
-      // root-absolute path starting with '/'
-      if (path.startsWith('/')) return location.origin + path;
-      // relative path: ensure proper prefix folder and resolve against SITE_BASE
-      const prefix = (type === 'image') ? 'Images/' : 'Posts/';
-      const rel = path.startsWith('Images/') || path.startsWith('Posts/') ? path : prefix + path;
-      try {
-        return new URL(rel, SITE_BASE).href;
-      } catch (e) {
-        // fallback: concatenate
-        return SITE_BASE.replace(/\/$/, '') + '/' + rel;
-      }
-    }
-
-    // ========= Utilities =========
+    // ====== Utility: Time Ago ======
     function timeAgo(dateStr) {
       const date = new Date(dateStr);
       const now = new Date();
       const diff = Math.floor((now - date) / 1000);
-
-      if (diff < 60) return `${diff} second${diff !== 1 ? 's' : ''} ago`;
-      if (diff < 3600) {
-        const m = Math.floor(diff / 60);
-        return `${m} minute${m !== 1 ? 's' : ''} ago`;
-      }
-      if (diff < 86400) {
-        const h = Math.floor(diff / 3600);
-        return `${h} hour${h !== 1 ? 's' : ''} ago`;
-      }
-      const d = Math.floor(diff / 86400);
-      return `${d} day${d !== 1 ? 's' : ''} ago`;
+      if (diff < 60) return `${diff} sec${diff !== 1 ? 's' : ''} ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} hour${diff >= 7200 ? 's' : ''} ago`;
+      return `${Math.floor(diff / 86400)} day${diff >= 172800 ? 's' : ''} ago`;
     }
 
-    // ========= Rendering =========
+    // ====== Path Fixer (fast, GitHub-safe) ======
+    function fixPath(path, type = 'image') {
+      if (!path) return '';
+      path = path.trim();
+
+      // absolute URL
+      if (/^https?:\/\//i.test(path)) return path;
+
+      // root absolute
+      if (path.startsWith('/')) return location.origin + path;
+
+      // always lowercase folders for GH Pages
+      const prefix = (type === 'image') ? 'images/' : 'posts/';
+      const normalized = path.toLowerCase().startsWith(prefix)
+        ? path
+        : prefix + path;
+
+      try {
+        return new URL(normalized, SITE_BASE).href;
+      } catch {
+        return SITE_BASE.replace(/\/$/, '') + '/' + normalized;
+      }
+    }
+
+    // ====== Load JSON ======
+    async function loadJSON(paths = []) {
+      for (const p of paths) {
+        try {
+          const res = await fetch(p, { cache: 'no-cache' });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        } catch (e) {}
+      }
+      return [];
+    }
+
+    // ====== Render Posts ======
     function renderPosts(posts) {
       const container = document.getElementById('posts');
       container.innerHTML = posts && posts.length ? '' : 'No posts yet.';
 
       (posts || []).forEach(post => {
-        if (!post.date) {
-          const now = new Date();
-          const monthsAgo = Math.floor(Math.random() * 12); // 0–11 months
-          const daysAgo = Math.floor(Math.random() * 30);    // 0–29 days
-          const hoursAgo = Math.floor(Math.random() * 24);
-          const minutesAgo = Math.floor(Math.random() * 60);
-          const d = new Date(now);
-          d.setMonth(d.getMonth() - monthsAgo);
-          d.setDate(d.getDate() - daysAgo);
-          d.setHours(d.getHours() - hoursAgo);
-          d.setMinutes(d.getMinutes() - minutesAgo);
-          post.date = d.toISOString();
-        }
+        if (!post.date) post.date = new Date().toISOString();
 
         const div = document.createElement('div');
         div.className = 'post';
@@ -135,9 +131,6 @@
           a.href = fixPath(post.path, 'post');
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
-        } else {
-          a.style.cursor = 'default';
-          a.style.color = 'var(--muted)';
         }
         a.textContent = post.title || 'Untitled';
         title.appendChild(a);
@@ -166,33 +159,26 @@
 
         const d = document.createElement('div');
         d.className = 'date';
-        d.setAttribute('data-date', post.date);
+        d.dataset.date = post.date;
         d.textContent = timeAgo(post.date);
         div.appendChild(d);
 
         container.appendChild(div);
       });
 
-      // sort by date desc
+      // Sort by date (newest first)
       Array.from(container.children)
         .sort((a, b) => new Date(b.querySelector('.date').dataset.date) - new Date(a.querySelector('.date').dataset.date))
         .forEach(node => container.appendChild(node));
     }
 
-    function updateTimeAgoLabels() {
-      document.querySelectorAll('.posts-list .post .date').forEach(d => {
-        const dateStr = d.getAttribute('data-date');
-        if (!dateStr) return;
-        const newText = timeAgo(dateStr);
-        if (d.textContent !== newText) d.textContent = newText;
-      });
-    }
-
+    // ====== Render Gallery ======
     function renderGallery(images) {
       const g = document.getElementById('gallery');
       g.innerHTML = images && images.length ? '' : 'No images yet.';
+
       (images || []).forEach(it => {
-        const srcVal = (typeof it === 'string') ? it : (it.src || '');
+        const srcVal = typeof it === 'string' ? it : (it.src || '');
         const src = fixPath(srcVal, 'image');
         if (!src) return;
 
@@ -217,24 +203,21 @@
       });
     }
 
-    // ========= Robust JSON loader =========
-    async function loadJSON(paths = []) {
-      for (const p of paths) {
-        try {
-          const res = await fetch(p, { cache: 'no-cache' });
-          if (!res.ok) continue;
-          const data = await res.json();
-          if (Array.isArray(data)) return data;
-        } catch (e) { console.warn('Fetch error', p, e); }
-      }
-      return [];
+    // ====== Update Time Labels ======
+    function updateTimeAgoLabels() {
+      document.querySelectorAll('.posts-list .post .date').forEach(d => {
+        const dateStr = d.dataset.date;
+        if (!dateStr) return;
+        const newText = timeAgo(dateStr);
+        if (d.textContent !== newText) d.textContent = newText;
+      });
     }
 
+    // ====== Fetch and Render ======
     async function updateContent() {
-      // Try SITE_BASE absolute first, then a few relative fallbacks
       const posts = await loadJSON([
         SITE_BASE + 'index.json',
-        SITE_BASE + 'index.json', // duplicate kept intentionally if you want to modify order
+        SITE_BASE + 'data/index.json',
         './index.json',
         'index.json'
       ]);
@@ -243,27 +226,28 @@
 
       const images = await loadJSON([
         SITE_BASE + 'images.json',
+        SITE_BASE + 'data/images.json',
         './images.json',
         'images.json'
       ]);
       renderGallery(images || []);
     }
 
-    // ========= Filter UI =========
-    document.getElementById('jsonFilter').addEventListener('input', (e) => {
+    // ====== Filter ======
+    document.getElementById('jsonFilter').addEventListener('input', e => {
       const q = e.target.value.toLowerCase().trim();
-      Array.from(document.querySelectorAll('.posts-list .post')).forEach(node => {
+      document.querySelectorAll('.posts-list .post').forEach(node => {
         const title = node.querySelector('h3')?.innerText.toLowerCase() || '';
         const excerpt = node.querySelector('p')?.innerText.toLowerCase() || '';
-        const path = node.querySelector('h3 a')?.getAttribute('href')?.toLowerCase() || '';
+        const path = node.querySelector('h3 a')?.href.toLowerCase() || '';
         node.style.display = (!q || title.includes(q) || excerpt.includes(q) || path.includes(q)) ? '' : 'none';
       });
     });
 
-    // ========= Kick off =========
+    // ====== Init ======
     updateContent();
-    setInterval(updateContent, 30000); // refresh content
-    setInterval(updateTimeAgoLabels, 60000); // refresh "time ago" displays
+    setInterval(updateContent, 30000);
+    setInterval(updateTimeAgoLabels, 60000);
   </script>
 </body>
 </html>
