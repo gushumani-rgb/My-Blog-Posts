@@ -210,6 +210,12 @@
     ]
   },
   {
+    "src": "/Images/benable-thumbnail.webp",
+    "source_files": [
+      "Images/benable-thumbnail.webp"
+    ]
+  },
+  {
     "src": "/Images/header-mobile.webp",
     "source_files": [
       "Images/header-mobile.webp"
