@@ -282,6 +282,12 @@
     ]
   },
   {
+    "src": "/Images/profile-pic-google.png",
+    "source_files": [
+      "Images/profile-pic-google.png"
+    ]
+  },
+  {
     "src": "/Images/sproughtgigs-video.webp",
     "source_files": [
       "Images/sproughtgigs-video.webp"
