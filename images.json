@@ -198,6 +198,12 @@
     ]
   },
   {
+    "src": "/Images/about-logo.webp",
+    "source_files": [
+      "Images/about-logo.webp"
+    ]
+  },
+  {
     "src": "/Images/autoclicker-aviso-thumbnail.webp",
     "source_files": [
       "Images/autoclicker-aviso-thumbnail.webp"
