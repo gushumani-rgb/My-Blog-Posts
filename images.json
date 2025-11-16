@@ -252,6 +252,12 @@
     ]
   },
   {
+    "src": "/Images/disclaimer.webp",
+    "source_files": [
+      "Images/disclaimer.webp"
+    ]
+  },
+  {
     "src": "/Images/header-banner1.webp",
     "source_files": [
       "Images/header-banner1.webp"
