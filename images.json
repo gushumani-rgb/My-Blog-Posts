@@ -322,5 +322,11 @@
     "source_files": [
       "Images/sproughtgigs-video.webp"
     ]
+  },
+  {
+    "src": "/Images/terms-conditions.webp",
+    "source_files": [
+      "Images/terms-conditions.webp"
+    ]
   }
 ]
