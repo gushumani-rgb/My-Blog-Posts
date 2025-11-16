@@ -240,6 +240,12 @@
     ]
   },
   {
+    "src": "/Images/contact-logo.webp",
+    "source_files": [
+      "Images/contact-logo.webp"
+    ]
+  },
+  {
     "src": "/Images/header-banner1.webp",
     "source_files": [
       "Images/header-banner1.webp"
