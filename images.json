@@ -252,6 +252,12 @@
     ]
   },
   {
+    "src": "/Images/cookie-notice.webp",
+    "source_files": [
+      "Images/cookie-notice.webp"
+    ]
+  },
+  {
     "src": "/Images/disclaimer.webp",
     "source_files": [
       "Images/disclaimer.webp"
