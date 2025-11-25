@@ -1,5 +1,23 @@
 [
   {
+    "src": "/Images/Ad1.jpg",
+    "source_files": [
+      "Images/Ad1.jpg"
+    ]
+  },
+  {
+    "src": "/Images/Ad2.jpg",
+    "source_files": [
+      "Images/Ad2.jpg"
+    ]
+  },
+  {
+    "src": "/Images/Ad3.jpg",
+    "source_files": [
+      "Images/Ad3.jpg"
+    ]
+  },
+  {
     "src": "/Images/Aviso1.webp",
     "source_files": [
       "Images/Aviso1.webp"
