@@ -1,9 +1,8 @@
 'use strict';
 
-// ===== Import scripts =====
+// ===== Import Firebase scripts =====
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
-importScripts('https://sw.wpushorg.com/ps/sw.js'); // wpushorg ad script
 
 // ===== Initialize Firebase =====
 firebase.initializeApp({
@@ -30,22 +29,10 @@ data: payload.data || {}
 self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// ===== wpushorg Push Events =====
-self.addEventListener('push', event => {
-if (typeof wpushorgOnPush === 'function') wpushorgOnPush(event);
-});
-
 // ===== Notification Clicks =====
 self.addEventListener('notificationclick', event => {
 event.notification.close();
 
-// If wpushorg click handler exists, use it
-if (typeof wpushorgOnClick === 'function') {
-wpushorgOnClick(event);
-return;
-}
-
-// Otherwise handle Firebase notification clicks
 const clickAction = event.notification?.data?.click_action || '/';
 event.waitUntil(
 clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
